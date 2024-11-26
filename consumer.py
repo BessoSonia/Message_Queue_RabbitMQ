@@ -2,7 +2,6 @@ import aio_pika
 import asyncio
 import os
 import requests
-import time
 from bs4 import BeautifulSoup
 
 # Таймаут ожидания сообщений (в секундах)
@@ -87,17 +86,22 @@ async def main():
         print("Ожидание. Нажмите CTRL+C для выхода.")
 
         try:
+            timer = True
+            start_time = asyncio.get_event_loop().time()  # Запоминаем время начала
             while True:
                 # Ожидание сообщения из очереди
                 try:
+                    elapsed = asyncio.get_event_loop().time() - start_time
+                    if elapsed > queue_timeout:
+                        print(f"Таймаут {queue_timeout} секунд истек. Завершение.")
+                        break  # Выход из цикла
                     message = await asyncio.wait_for(queue.get(no_ack=False), timeout=queue_timeout)
                     await on_message(message)
-                except asyncio.TimeoutError:
-                    print(f"Время ожидания ({queue_timeout} c.) вышло.")
-                    break
+                    start_time = asyncio.get_event_loop().time()  # Сбрасываем таймер
                 except aio_pika.exceptions.QueueEmpty:
-                    print("Очередь пуста. Повторная попытка...")
-                    time.sleep(2)
+                    if timer:
+                        print("Очередь пуста. Ожидание...")
+                        timer = False
 
         except asyncio.CancelledError:
             print("Consumer прерван.")
