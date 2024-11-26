@@ -26,6 +26,11 @@ def extract_links(url, base_domain):
         response = requests.get(url)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Извлекаем название страницы
+        title = soup.title.string.strip() if soup.title else "No Title"
+        print(f"Обработка страницы: '{title}' ({url})")
+
         links = set()
 
         for a_tag in soup.find_all('a', href=True):
